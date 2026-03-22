@@ -1,0 +1,25 @@
+name: Save Articles
+
+on:
+  repository_dispatch:
+    types: [save_articles]
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 trafilatura curl_cffi google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Save articles
+        env:
+          DOCUMENT_ID: ${{ secrets.DOCUMENT_ID }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          URLS: ${{ toJson(github.event.client_payload.urls) }}
+        run: python run_from_env.py
