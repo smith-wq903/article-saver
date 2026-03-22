@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: article-saver
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DOCUMENT_ID
+        sync: false
+      - key: SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: ACCESS_PASSWORD
+        sync: false

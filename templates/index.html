@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記事保存</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 1.3rem; margin-bottom: 20px; color: #222; }
+    label { display: block; font-size: 0.85rem; color: #555; margin-bottom: 6px; }
+    textarea, input[type="password"] {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    textarea:focus, input[type="password"]:focus { border-color: #4285f4; }
+    textarea { height: 140px; resize: vertical; margin-bottom: 14px; }
+    input[type="password"] { margin-bottom: 14px; }
+    button {
+      width: 100%;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #3367d6; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    #results { margin-top: 18px; }
+    .result-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .result-ok { background: #e8f5e9; color: #2e7d32; }
+    .result-error { background: #fdecea; color: #c62828; }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📰 記事保存</h1>
+
+    <label>URL（1行に1つ、複数可）</label>
+    <textarea id="urls" placeholder="https://example.com/article1&#10;https://example.com/article2"></textarea>
+
+    <div id="password-field" style="display:none">
+      <label>パスワード</label>
+      <input type="password" id="password" placeholder="パスワードを入力">
+    </div>
+
+    <button id="btn" onclick="save()">Google Documentに保存</button>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    // パスワード保護が有効な場合のみ表示
+    fetch("/save", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({urls:[], password:""})})
+      .then(r => r.json()).then(d => {
+        if (d.error === "パスワードが違います") {
+          document.getElementById("password-field").style.display = "block";
+        }
+      }).catch(() => {});
+
+    async function save() {
+      const urls = document.getElementById("urls").value
+        .split("\n").map(s => s.trim()).filter(s => s);
+      if (!urls.length) { alert("URLを入力してください"); return; }
+
+      const btn = document.getElementById("btn");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>保存中...';
+      document.getElementById("results").innerHTML = "";
+
+      const password = document.getElementById("password").value;
+      const res = await fetch("/save", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({urls, password})
+      });
+      const data = await res.json();
+
+      btn.disabled = false;
+      btn.innerHTML = "Google Documentに保存";
+
+      const container = document.getElementById("results");
+      if (data.error && !data.results) {
+        container.innerHTML = `<div class="result-item result-error">❌ ${data.error}</div>`;
+        return;
+      }
+      (data.results || []).forEach(r => {
+        const div = document.createElement("div");
+        div.className = "result-item " + (r.status === "ok" ? "result-ok" : "result-error");
+        div.textContent = r.status === "ok"
+          ? `✅ 「${r.title}」`
+          : `❌ ${r.url} — ${r.error}`;
+        container.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
