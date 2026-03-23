@@ -165,8 +165,12 @@
       btn.innerHTML = "Google Documentに保存";
     }
 
-    // 初回アクセス時にトークン未設定なら設定画面を表示
-    if (!getToken()) showSetup();
+    // トークン未設定なら設定画面、設定済みならメイン画面を表示
+    if (!getToken()) {
+      showSetup();
+    } else {
+      document.getElementById("main").style.display = "block";
+    }
   </script>
 </body>
 </html>
